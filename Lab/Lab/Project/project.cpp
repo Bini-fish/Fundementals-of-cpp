@@ -27,7 +27,7 @@ void add_client(const json& data);
 string format_client(const vector<json>& clients);
 void edit_client(const vector<json>& clients);
 void remove_client(const vector<json>& clients);
-
+ 
 // Function to format date string
 string format_date(const string& date_str) {
   struct tm tm_struct;

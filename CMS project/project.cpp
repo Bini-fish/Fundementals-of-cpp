@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sstream>
 #include <fstream>
+#include <regex>
 
 using namespace std;
 // Photography Booking software
@@ -45,7 +46,6 @@ bool isValidDate(const string &date)
 
     return true; // Date is valid
 }
-
 bool isDateAfter(const string &date1, const string &date2)
 {
     int year1, month1, day1;
@@ -78,76 +78,76 @@ bool isDateAfter(const string &date1, const string &date2)
     }
     return false;
 }
-
-void add_clients(Client *clients, int len)
+void addClients(Client *clients, int len)
 {
     for (int i = 0; i < len; i++)
     {
         cout << "Enter details for client " << (i + 1) << ":" << endl;
 
         cout << "Client Name: ";
-        cin >> clients[i].clientName;
+        cin.ignore();
+        getline(cin, clients[i].clientName);
+        // used getline to handle the whitespace, because the code enters an infinite loop when i enter a space i.e (biniyam f).
 
         cout << "Phone Number: ";
         cin >> clients[i].phoneNumber;
 
-        string tempDate;
+        string temp_date;
+        // storing the input into a temporary string and checking if it's in a valid format.
         do
         {
             cout << "Appointment Date (YYYY/MM/DD): ";
-            cin >> tempDate;
-        } while (!isValidDate(tempDate));
-        clients[i].appointmentDate = tempDate;
+            cin >> temp_date;
+        } while (!isValidDate(temp_date));
+        clients[i].appointmentDate = temp_date;
 
-        cout << "Is the task completed? (yes/no): ";
-        cin >> clients[i].completed;
-        if (clients[i].completed == "yes")
+        while (true)
         {
-            string tempCompletedDate;
-            do
+            cout << "Is the task completed? (yes/no): ";
+            cin >> clients[i].completed;
+
+            if (clients[i].completed == "yes")
             {
-                cout << "Completed Date (YYYY/MM/DD): ";
-                cin >> tempCompletedDate;
-            } while (!isValidDate(tempCompletedDate) || !isDateAfter(clients[i].appointmentDate, tempCompletedDate));
-            clients[i].completedDate = tempCompletedDate;
+                string tempCompletedDate;
+                do
+                {
+                    cout << "Completed Date (YYYY/MM/DD): ";
+                    cin >> tempCompletedDate;
+                } while (!isValidDate(tempCompletedDate) || !isDateAfter(clients[i].appointmentDate, tempCompletedDate));
+                clients[i].completedDate = tempCompletedDate;
+                while (true)
+                {
+                    string url;
+                    cout << "URL: ";
+                    regex url_pattern(R"(/(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am|instagr.com)\/(\w+)/igm)");
+                    getline(cin, url);
+                    if (!regex_match(url, url_pattern))
+                    {
+                        cerr << "Invalid URL format." << endl;
+                    }
+                    else
+                    {
+                        cin >> clients[i].url;
+                        break;
+                    }
+                }
 
-            cout << "URL: ";
-            cin >> clients[i].url;
+                break;
+            }
+            else if (clients[i].completed == "no")
+            {
+                break;
+            }
+            else
+            {
+                cout << "Please Enter a valid Input" << endl;
+            }
         }
-        else if (clients[i].completed == "no")
-        {
-            continue;
-        }
-        else
-        {
-            cout << "Please Enter a valid Input" << endl;
-        }
-
         cout << endl;
     }
 }
-void display_client(Client *clients, int len)
-{
-    for (int i = 0; i < len; i++)
-    {
-        cout << "============== Client " << (i + 1) << " ==============" << endl;
-        cout << "Client Name: " << clients[i].clientName << endl;
-        cout << "Phone Number: " << clients[i].phoneNumber << endl;
-        cout << "Appointement Date (YYYY/MM/DD): " << clients[i].appointmentDate << endl;
-        cout << "Completed: " << clients[i].completed << endl;
-        if (clients[i].completed == "Yes")
-        {
-            cout << "Completed Date (YYYY/MM/DD): " << clients[i].completedDate << endl;
-            cout << "URL: " << clients[i].url << endl;
-        }
-        else if (clients[i].completed == "No")
-        {
-            continue;
-        }
-    }
-    cout << "------------------------------------------" << endl;
-}
-void saveToTxt(Client *clients, int len)
+
+void saveToText(Client *clients, int len)
 {
     ofstream output_f;
     output_f.open("client_list.txt");
@@ -156,11 +156,12 @@ void saveToTxt(Client *clients, int len)
         for (int i = 0; i < len; i++)
         {
             output_f << "============== Client " << (i + 1) << " ==============" << endl;
+            output_f << endl;
             output_f << "Client Name: " << clients[i].clientName << endl;
             output_f << "Phone Number: " << clients[i].phoneNumber << endl;
             output_f << "Appointement Date (YYYY/MM/DD): " << clients[i].appointmentDate << endl;
             output_f << "Completed: " << clients[i].completed << endl;
-            if (clients[i].completed == "Yes")
+            if (clients[i].completed == "yes")
             {
                 output_f << "Completed Date (YYYY/MM/DD): " << clients[i].completedDate << endl;
                 output_f << "URL: " << clients[i].url << endl;
@@ -176,14 +177,61 @@ void saveToTxt(Client *clients, int len)
         cout << "Unable to open file for writing." << endl;
     }
 }
+void displayText(const string &fileName)
+{
+    ifstream file(fileName);
+
+    if (file.is_open())
+    {
+        string text;
+        while (!file.eof())
+        {
+            getline(file, text);
+            cout << text << endl;
+        }
+    }
+    else
+    {
+        cout << "Unable to open the file";
+    }
+    file.close();
+}
 
 int main()
 {
-    cout << "How many clients do you want to add? ";
-    cin >> numClients;
+    int choice;
+    cout << "============== Welcome to the Photography Booking Software ==============" << endl;
+    cout << "What do you want to do? (1-4)" << endl;
+    cout << "1. Add Client: " << endl;
+    cout << "2. Remove Client: " << endl;
+    cout << "3. Edit Client: " << endl;
+    cout << "4. Display client list: " << endl;
+    cin >> choice;
+    // checking if the input is an integer and is between 1-4.
+    while (choice > 1 || choice < 5)
+    {
+        cout << "Invalid input. Please enter a number between 1 and 4: ";
+        cin.clear();
+        cin.ignore();
+    }
+    cout << choice;
     Client clients[numClients];
-    add_clients(clients, numClients);
-    display_client(clients, numClients);
-    saveToTxt(clients, numClients);
+    switch (choice)
+    {
+    case '1':
+        addClients(clients, numClients);
+        saveToText(clients, numClients);
+        break;
+    case '2':
+        break;
+    case '3':
+        break;
+    case '4':
+        displayText("client_list.txt");
+        break;
+    default:
+        break;
+    }
+
     return 0;
 }
